@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -5,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Plus } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Trash2 } from "lucide-react";
 
 interface Exercise {
   id: string;
@@ -29,12 +31,9 @@ const ExerciseManagement = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchData();
+    fetchExercises();
+    fetchExerciseGroups();
   }, []);
-
-  const fetchData = async () => {
-    await Promise.all([fetchExercises(), fetchExerciseGroups()]);
-  };
 
   const fetchExercises = async () => {
     const { data, error } = await supabase
@@ -73,10 +72,10 @@ const ExerciseManagement = () => {
   const handleAddExercise = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!newExerciseName.trim() || !selectedGroupForExercise) {
+    if (!newExerciseName || !selectedGroupForExercise) {
       toast({
         title: "Missing Information",
-        description: "Please enter exercise name and select a group",
+        description: "Please fill in all fields",
         variant: "destructive",
       });
       return;
@@ -87,14 +86,14 @@ const ExerciseManagement = () => {
     const { error } = await supabase
       .from("exercises")
       .insert({
-        name: newExerciseName.trim(),
+        name: newExerciseName,
         group_id: selectedGroupForExercise,
       });
 
     if (error) {
       toast({
         title: "Error",
-        description: "Failed to add exercise. It might already exist.",
+        description: "Failed to add exercise",
         variant: "destructive",
       });
     } else {
@@ -113,7 +112,7 @@ const ExerciseManagement = () => {
   const handleAddGroup = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!newGroupName.trim()) {
+    if (!newGroupName) {
       toast({
         title: "Missing Information",
         description: "Please enter a group name",
@@ -127,13 +126,13 @@ const ExerciseManagement = () => {
     const { error } = await supabase
       .from("exercise_groups")
       .insert({
-        name: newGroupName.trim(),
+        name: newGroupName,
       });
 
     if (error) {
       toast({
         title: "Error",
-        description: "Failed to add exercise group. It might already exist.",
+        description: "Failed to add exercise group",
         variant: "destructive",
       });
     } else {
@@ -148,11 +147,7 @@ const ExerciseManagement = () => {
     setLoading(false);
   };
 
-  const handleDeleteExercise = async (exerciseId: string, exerciseName: string) => {
-    if (!confirm(`Are you sure you want to delete "${exerciseName}"? This will also delete all workout entries for this exercise.`)) {
-      return;
-    }
-
+  const handleDeleteExercise = async (exerciseId: string) => {
     const { error } = await supabase
       .from("exercises")
       .delete()
@@ -173,22 +168,7 @@ const ExerciseManagement = () => {
     }
   };
 
-  const handleDeleteGroup = async (groupId: string, groupName: string) => {
-    const exercisesInGroup = exercises.filter(ex => ex.group_id === groupId);
-    
-    if (exercisesInGroup.length > 0) {
-      toast({
-        title: "Cannot Delete",
-        description: `Please delete all exercises in "${groupName}" first`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!confirm(`Are you sure you want to delete the group "${groupName}"?`)) {
-      return;
-    }
-
+  const handleDeleteGroup = async (groupId: string) => {
     const { error } = await supabase
       .from("exercise_groups")
       .delete()
@@ -206,158 +186,148 @@ const ExerciseManagement = () => {
         description: "Exercise group deleted successfully",
       });
       fetchExerciseGroups();
+      fetchExercises(); // Refresh exercises as well
     }
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
-      {/* Add New Exercise */}
+    <div className="space-y-8">
       <div className="gym-card p-8">
         <h2 className="text-2xl font-bold gradient-text mb-6 text-center">
-          Add New Exercise
+          Manage Exercises & Groups
         </h2>
         
-        <form onSubmit={handleAddExercise} className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Add New Exercise */}
           <div>
-            <Label htmlFor="exerciseName" className="text-lg font-semibold mb-3 block">
-              Exercise Name
-            </Label>
-            <Input
-              id="exerciseName"
-              value={newExerciseName}
-              onChange={(e) => setNewExerciseName(e.target.value)}
-              placeholder="e.g. Barbell Bench Press"
-              className="gym-input"
-            />
+            <h3 className="text-xl font-bold gradient-text mb-4">Add New Exercise</h3>
+            <form onSubmit={handleAddExercise} className="space-y-4">
+              <div>
+                <Label htmlFor="exerciseName" className="text-lg font-semibold mb-3 block">
+                  Exercise Name
+                </Label>
+                <Input
+                  id="exerciseName"
+                  type="text"
+                  value={newExerciseName}
+                  onChange={(e) => setNewExerciseName(e.target.value)}
+                  placeholder="e.g. Barbell Bench Press"
+                  className="gym-input"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="exerciseGroup" className="text-lg font-semibold mb-3 block">
+                  Exercise Group
+                </Label>
+                <Select value={selectedGroupForExercise} onValueChange={setSelectedGroupForExercise}>
+                  <SelectTrigger className="gym-input">
+                    <SelectValue placeholder="Select a group" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border">
+                    {exerciseGroups.map((group) => (
+                      <SelectItem 
+                        key={group.id} 
+                        value={group.id}
+                        className="text-foreground hover:bg-muted"
+                      >
+                        {group.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Button 
+                type="submit" 
+                disabled={loading}
+                className="w-full gym-button-primary"
+              >
+                {loading ? "Adding..." : "Add Exercise"}
+              </Button>
+            </form>
           </div>
 
+          {/* Add New Group */}
           <div>
-            <Label className="text-lg font-semibold mb-3 block">
-              Exercise Group
-            </Label>
-            <Select value={selectedGroupForExercise} onValueChange={setSelectedGroupForExercise}>
-              <SelectTrigger className="gym-input">
-                <SelectValue placeholder="Select an exercise group" />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border">
-                {exerciseGroups.map((group) => (
-                  <SelectItem 
-                    key={group.id} 
-                    value={group.id}
-                    className="text-foreground hover:bg-muted"
-                  >
-                    {group.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <h3 className="text-xl font-bold gradient-text mb-4">Add New Exercise Group</h3>
+            <form onSubmit={handleAddGroup} className="space-y-4">
+              <div>
+                <Label htmlFor="groupName" className="text-lg font-semibold mb-3 block">
+                  Group Name
+                </Label>
+                <Input
+                  id="groupName"
+                  type="text"
+                  value={newGroupName}
+                  onChange={(e) => setNewGroupName(e.target.value)}
+                  placeholder="e.g. Chest, Back, Legs"
+                  className="gym-input"
+                />
+              </div>
+
+              <Button 
+                type="submit" 
+                disabled={loading}
+                className="w-full gym-button-primary"
+              >
+                {loading ? "Adding..." : "Add Group"}
+              </Button>
+            </form>
           </div>
-
-          <Button 
-            type="submit" 
-            disabled={loading}
-            className="w-full gym-button-primary text-lg py-4"
-          >
-            <Plus size={20} className="mr-2" />
-            {loading ? "Adding..." : "Add Exercise"}
-          </Button>
-        </form>
-      </div>
-
-      {/* Add New Exercise Group */}
-      <div className="gym-card p-8">
-        <h2 className="text-2xl font-bold gradient-text mb-6 text-center">
-          Add New Exercise Group
-        </h2>
-        
-        <form onSubmit={handleAddGroup} className="space-y-6">
-          <div>
-            <Label htmlFor="groupName" className="text-lg font-semibold mb-3 block">
-              Group Name
-            </Label>
-            <Input
-              id="groupName"
-              value={newGroupName}
-              onChange={(e) => setNewGroupName(e.target.value)}
-              placeholder="e.g. Chest, Back, Legs"
-              className="gym-input"
-            />
-          </div>
-
-          <Button 
-            type="submit" 
-            disabled={loading}
-            className="w-full gym-button-primary text-lg py-4"
-          >
-            <Plus size={20} className="mr-2" />
-            {loading ? "Adding..." : "Add Exercise Group"}
-          </Button>
-        </form>
+        </div>
       </div>
 
       {/* Exercise Groups List */}
       <div className="gym-card p-8">
-        <h2 className="text-2xl font-bold gradient-text mb-6 text-center">
-          Exercise Groups
-        </h2>
-        
+        <h3 className="text-xl font-bold gradient-text mb-6">Exercise Groups</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {exerciseGroups.map((group) => {
-            const exercisesInGroup = exercises.filter(ex => ex.group_id === group.id);
-            return (
-              <div key={group.id} className="bg-secondary rounded-lg p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-semibold text-lg">{group.name}</h3>
+          {exerciseGroups.map((group) => (
+            <Card key={group.id} className="bg-muted border-border">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex justify-between items-center text-lg">
+                  {group.name}
                   <Button
-                    onClick={() => handleDeleteGroup(group.id, group.name)}
                     variant="ghost"
                     size="sm"
+                    onClick={() => handleDeleteGroup(group.id)}
                     className="text-destructive hover:text-destructive hover:bg-destructive/10"
                   >
                     <Trash2 size={16} />
                   </Button>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {exercisesInGroup.length} exercise{exercisesInGroup.length !== 1 ? 's' : ''}
-                </p>
-              </div>
-            );
-          })}
+                </CardTitle>
+              </CardHeader>
+            </Card>
+          ))}
         </div>
       </div>
 
       {/* Exercises List */}
       <div className="gym-card p-8">
-        <h2 className="text-2xl font-bold gradient-text mb-6 text-center">
-          All Exercises
-        </h2>
-        
-        <div className="space-y-4">
-          {exerciseGroups.map((group) => {
-            const exercisesInGroup = exercises.filter(ex => ex.group_id === group.id);
-            if (exercisesInGroup.length === 0) return null;
-
-            return (
-              <div key={group.id}>
-                <h3 className="text-xl font-semibold gradient-text mb-3">{group.name}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
-                  {exercisesInGroup.map((exercise) => (
-                    <div key={exercise.id} className="bg-secondary rounded-lg p-4 flex justify-between items-center">
-                      <span className="font-medium">{exercise.name}</span>
-                      <Button
-                        onClick={() => handleDeleteExercise(exercise.id, exercise.name)}
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 size={16} />
-                      </Button>
+        <h3 className="text-xl font-bold gradient-text mb-6">Exercises</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {exercises.map((exercise) => (
+            <Card key={exercise.id} className="bg-muted border-border">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex justify-between items-center text-lg">
+                  <div>
+                    <div>{exercise.name}</div>
+                    <div className="text-sm text-muted-foreground font-normal">
+                      {exercise.exercise_groups.name}
                     </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDeleteExercise(exercise.id)}
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  >
+                    <Trash2 size={16} />
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+            </Card>
+          ))}
         </div>
       </div>
     </div>

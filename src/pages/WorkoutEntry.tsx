@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -5,6 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface Exercise {
   id: string;
@@ -18,11 +24,15 @@ const WorkoutEntry = () => {
   const [selectedExercise, setSelectedExercise] = useState("");
   const [weight, setWeight] = useState("");
   const [reps, setReps] = useState("");
+  const [workoutDate, setWorkoutDate] = useState<Date>();
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchExercises();
+    // Set default date to today in IST
+    const today = new Date();
+    setWorkoutDate(today);
   }, []);
 
   const fetchExercises = async () => {
@@ -45,7 +55,7 @@ const WorkoutEntry = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedExercise || !weight || !reps) {
+    if (!selectedExercise || !weight || !reps || !workoutDate) {
       toast({
         title: "Missing Information",
         description: "Please fill in all fields",
@@ -62,6 +72,7 @@ const WorkoutEntry = () => {
         exercise_id: selectedExercise,
         weight_kg: parseFloat(weight),
         reps: parseInt(reps),
+        workout_date: format(workoutDate, 'yyyy-MM-dd'),
       });
 
     if (error) {
@@ -79,6 +90,7 @@ const WorkoutEntry = () => {
       setSelectedExercise("");
       setWeight("");
       setReps("");
+      setWorkoutDate(new Date());
     }
 
     setLoading(false);
@@ -94,6 +106,35 @@ const WorkoutEntry = () => {
         </h2>
         
         <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <Label htmlFor="date" className="text-lg font-semibold mb-3 block">
+              Workout Date
+            </Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "gym-input justify-start text-left font-normal",
+                    !workoutDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {workoutDate ? format(workoutDate, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 bg-card border-border" align="start">
+                <Calendar
+                  mode="single"
+                  selected={workoutDate}
+                  onSelect={setWorkoutDate}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
           <div>
             <Label htmlFor="exercise" className="text-lg font-semibold mb-3 block">
               Exercise
