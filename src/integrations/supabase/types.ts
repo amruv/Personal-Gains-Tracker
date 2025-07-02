@@ -9,7 +9,97 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      exercise_groups: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      exercises: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exercises_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "exercise_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workout_entries: {
+        Row: {
+          created_at: string
+          effort: number | null
+          exercise_id: string
+          id: string
+          reps: number
+          weight_kg: number
+          workout_date: string
+        }
+        Insert: {
+          created_at?: string
+          effort?: number | null
+          exercise_id: string
+          id?: string
+          reps: number
+          weight_kg: number
+          workout_date?: string
+        }
+        Update: {
+          created_at?: string
+          effort?: number | null
+          exercise_id?: string
+          id?: string
+          reps?: number
+          weight_kg?: number
+          workout_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_entries_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
