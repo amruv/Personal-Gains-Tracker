@@ -14,7 +14,7 @@ const Navigation = () => {
     <nav className="gym-card mb-8">
       <div className="p-6">
         <h1 className="text-3xl font-bold gradient-text mb-6 text-center">
-          GYM TRACKER
+          Amruth's Gym Tracker
         </h1>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           {navItems.map(({ path, label, icon: Icon }) => {
